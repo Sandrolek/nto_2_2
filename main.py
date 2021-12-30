@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Чтобы показывался график надо установить GUI компонент, например Qt5 и вызвать matplotlib.pyplot.show()
+# pip install PyQt5
+
 import networkx as nx
 import matplotlib
 
@@ -77,6 +80,7 @@ print("Vertices:")
 print(G.nodes())
 
 nx.draw(G)
+matplotlib.pyplot.show()
 
 num_drones = num_of_drones(G)
 
