@@ -5,8 +5,8 @@
 # pip install PyQt5
 
 import networkx as nx
-import matplotlib.pyplot as plt
-import dimod
+#import matplotlib.pyplot as plt
+#import dimod
 import math
 
 from networkx.algorithms.shortest_paths.generic import shortest_path
@@ -16,43 +16,30 @@ from networkx.algorithms.shortest_paths.generic import shortest_path
 # BATTERY = int(input)
 # COST = int(input)
 
-# n = 7
-# STEPS = 50
-# BATTERY = 24
-# COST = 1200
+n = 7
+STEPS = 50
+BATTERY = 24
+COST = 1200
 
-# map = [ ['.', '.', '.', '.', '.', '.'],
-#         ['.', '#', '#', '#', '#', '.'],
-#         ['.', '.', '#', '.', '#', '.'],
-#         ['.', '.', '#', '.', '#', '.'],
-#         ['.', '#', '#', '#', '#', '.'],
-#         ['.', '.', '.', '.', '.', '.'],
-# ]
-
-n = int(input())
-STEPS = int(input())
-BATTERY = int(input())
-COST = int(input())
-
-map = [['.' for j in range(n-1)] for i in range(n-1)]
-
-for i in range(1, n-2):
-    print(i)
-    map[i] = list('.' + input() + '.')
-
-print(map)
+map = [ ['.', '.', '.', '.', '.', '.'],
+        ['.', '#', '#', '#', '#', '.'],
+        ['.', '.', '#', '.', '#', '.'],
+        ['.', '.', '#', '.', '#', '.'],
+        ['.', '#', '#', '#', '#', '.'],
+        ['.', '.', '.', '.', '.', '.'],
+]
 
 check = [[0, -1], [-1, 0], [0, 1], [1, 0]]
 
 tsp = nx.approximation.traveling_salesman_problem
 
 def num_of_drones(G):
-    print("Counting num drones")
-    print(tsp(G))
+    #print("Counting num drones")
+    #print(tsp(G))
     len_path = len(tsp(G)) - 1
-    print(len_path)
+    #print(len_path)
     res = math.ceil(2 * len_path / BATTERY)
-    print(f"NumDrones is: {res}")
+    #print(f"NumDrones is: {res}")
     return res
 
 class Drone:
@@ -67,9 +54,9 @@ class Drone:
         if (len(nx.shortest_path(G, source=self.pos, target=(0,0))) >=  self.batt):
             node = (0,0)
 
-        print(f"Navigating dron {self.num} from {self.pos} to {node}")
+        #print(f"Navigating dron {self.num} from {self.pos} to {node}")
         path = shortest_path(G, source=self.pos, target=node)
-        print(path)
+        #print(path)
 
         res = self.command(self.pos, path[1])
 
@@ -84,7 +71,7 @@ class Drone:
         y0, x0 = pos
         y1, x1 = target
 
-        print(f"y0: {y0}, x0: {x0}, y1: {y1}, x1: {x1}")
+        #print(f"y0: {y0}, x0: {x0}, y1: {y1}, x1: {x1}")
         
         res = '' 
 
@@ -110,18 +97,18 @@ class Fleet:
 
         self.drones = [Drone(batt=BATTERY, num = i) for i in range(self.num)]
         
-        print(f"Drones:")
-        for drone in self.drones:
-            print(drone.num, drone.pos, drone.batt)
+        # print(f"Drones:")
+        # for drone in self.drones:
+        #     print(drone.num, drone.pos, drone.batt)
 
     def update(self):
         self.update_map()
         res = self.update_drones()
-        print(f"RES1: {res}")
+        #print(f"RES1: {res}")
 
         self.return_commands()
         
-        self.draw_graph()
+        #self.draw_graph()
 
         return res
 
@@ -135,14 +122,14 @@ class Fleet:
             G.nodes[drone.pos]['num'] = i
             self.G.nodes[drone.pos]['last'] = 0
 
-        print("data:")
+        #print("data:")
         for i in self.G.nodes.data():
             if (i[1]['in'] == False):
                 self.G.nodes[i[0]]['last'] += 1
-            print(i)
+            #print(i)
     
     def update_drones(self): # call search for each drone
-        print("L:")
+        #print("L:")
         l = sorted(self.G.nodes.data(), key=lambda x: x[1]['last'], reverse=True)
         #print(l)
         
@@ -152,21 +139,6 @@ class Fleet:
             res += drone.search(G, l[i][0])
 
         return res
-
-    def draw_graph(self):
-        print("Drawing Graph")
-
-        labels_dict = {}
-        for node in self.G.nodes():
-            x, y = node
-            z = 666
-            #print(f"X: {type(x)}, Y: {y}")
-            res = f"{x},{y} L: {G.nodes[node]['last']} D: {G.nodes[node]['num']}"
-            labels_dict[node] = res
-
-        nx.draw(G, labels=labels_dict, with_labels=True)
-
-        plt.show()
 
     def return_commands(self): # return commands for each drone
         pass
@@ -187,12 +159,14 @@ for i, str in enumerate(map):
                     G.nodes[(i-1, j-1)]['last'] = 0
                     G.nodes[(i + k[0]-1, j + k[1]-1)]['last'] = 0
 
-print("Edges:")  
-print(G.edges())
-print("Vertices:")  
-print(G.nodes())
+#rint("Edges:")  
+#print(G.edges())
+#print("Vertices:")  
+#print(G.nodes())
 
 num_drones = num_of_drones(G)
+
+print(num_drones)
 
 fleet = Fleet(G, num_drones, (0, 0), BATTERY)
 
