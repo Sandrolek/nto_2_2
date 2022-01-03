@@ -11,11 +11,6 @@ import math
 
 from networkx.algorithms.shortest_paths.generic import shortest_path
 
-# n = int(input) - 3
-# STEPS = int(input)
-# BATTERY = int(input)
-# COST = int(input)
-
 n = 7
 STEPS = 50
 BATTERY = 24
@@ -29,18 +24,30 @@ map = [ ['.', '.', '.', '.', '.', '.'],
         ['.', '.', '.', '.', '.', '.'],
 ]
 
+# n = int(input())
+# STEPS = int(input())
+# BATTERY = int(input())
+# COST = int(input())
+
+# map = [['.' for j in range(n-1)] for i in range(n-1)]
+
+# for i in range(1, n-2):
+#     map[i] = list('.' + input() + '.')
+
+#print(map)
+
 check = [[0, -1], [-1, 0], [0, 1], [1, 0]]
 
-tsp = nx.approximation.traveling_salesman_problem
+#tsp = traveling_salesman_problem
 
 def num_of_drones(G):
     #print("Counting num drones")
     #print(tsp(G))
-    len_path = len(tsp(G)) - 1
+    #len_path = len(tsp(G)) - 1
     #print(len_path)
-    res = math.ceil(2 * len_path / BATTERY)
+    #res = math.ceil(2 * len_path / BATTERY)
     #print(f"NumDrones is: {res}")
-    return res
+    return 2
 
 class Drone:
 
@@ -50,8 +57,10 @@ class Drone:
         self.num = num
 
     def search(self, G, node): # find destination
+        
+        print(f"Num: {self.num}, Len: {len(nx.shortest_path(G, source=self.pos, target=(0,0))) - 1}, Batt: {self.batt}")
 
-        if (len(nx.shortest_path(G, source=self.pos, target=(0,0))) >=  self.batt):
+        if (self.batt <= len(nx.shortest_path(G, source=self.pos, target=(0,0))) - 1 ):
             node = (0,0)
 
         #print(f"Navigating dron {self.num} from {self.pos} to {node}")
@@ -61,6 +70,8 @@ class Drone:
         res = self.command(self.pos, path[1])
 
         self.pos = path[1]
+
+        self.batt -=1
 
         if (self.pos == (0,0)):
             self.batt = BATTERY

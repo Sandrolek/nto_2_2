@@ -8,44 +8,48 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import dimod
 import math
+import own_tsp
 
 from networkx.algorithms.shortest_paths.generic import shortest_path
 
-# n = int(input) - 3
-# STEPS = int(input)
-# BATTERY = int(input)
-# COST = int(input)
+### CONSTANTS ###
 
-# n = 7
-# STEPS = 50
-# BATTERY = 24
-# COST = 1200
+n = 7
+STEPS = 50
+BATTERY = 24
+COST = 1200
 
-# map = [ ['.', '.', '.', '.', '.', '.'],
-#         ['.', '#', '#', '#', '#', '.'],
-#         ['.', '.', '#', '.', '#', '.'],
-#         ['.', '.', '#', '.', '#', '.'],
-#         ['.', '#', '#', '#', '#', '.'],
-#         ['.', '.', '.', '.', '.', '.'],
-# ]
+map = [ ['.', '.', '.', '.', '.', '.'],
+        ['.', '#', '#', '#', '#', '.'],
+        ['.', '.', '#', '.', '#', '.'],
+        ['.', '.', '#', '.', '#', '.'],
+        ['.', '#', '#', '#', '#', '.'],
+        ['.', '.', '.', '.', '.', '.'],
+]
 
-n = int(input())
-STEPS = int(input())
-BATTERY = int(input())
-COST = int(input())
+### CONSTANTS ###
 
-map = [['.' for j in range(n-1)] for i in range(n-1)]
+### INPUT ###
 
-for i in range(1, n-2):
-    print(i)
-    map[i] = list('.' + input() + '.')
+# n = int(input())
+# STEPS = int(input())
+# BATTERY = int(input())
+# COST = int(input())
 
-print(map)
+# map = [['.' for j in range(n-1)] for i in range(n-1)]
+
+# for i in range(1, n-2):
+#     print(i)
+#     map[i] = list('.' + input() + '.')
+
+# print(map)
+
+### INPUT ###
 
 check = [[0, -1], [-1, 0], [0, 1], [1, 0]]
 
-tsp = nx.approximation.traveling_salesman_problem
-
+tsp = own_tsp.traveling_salesman_problem
+    
 def num_of_drones(G):
     print("Counting num drones")
     print(tsp(G))
@@ -191,6 +195,10 @@ print("Edges:")
 print(G.edges())
 print("Vertices:")  
 print(G.nodes())
+
+print("Paths:")
+
+print([p for p in nx.all_shortest_paths(G, source=(0, 0), target=(0, 0))])
 
 num_drones = num_of_drones(G)
 
