@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Чтобы показывался график надо установить GUI компонент, например Qt5 и вызвать matplotlib.pyplot.show()
-# pip install PyQt5
-
 import networkx as nx
 import matplotlib.pyplot as plt
 import dimod
@@ -55,17 +52,6 @@ map = [ ['.', '.', '.', '.', '.', '.', '.'],
 ### INPUT ###
 
 check = [[0, -1], [-1, 0], [0, 1], [1, 0]]
-
-tsp = own_tsp.traveling_salesman_problem
-    
-# def num_of_drones(G):
-#     print("Counting num drones")
-#     print(tsp(G))
-#     len_path = len(tsp(G)) - 1
-#     print(len_path)
-#     res = math.ceil(2 * len_path / BATTERY)
-#     print(f"NumDrones is: {res}")
-#     return res
 
 def  num_of_drones(G):
     print("Counting num drones")
