@@ -3,9 +3,10 @@
 
 import networkx as nx
 from time import time
+import math
 
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
+from networkx.algorithms.cycles import recursive_simple_cycles
+from networkx.algorithms.shortest_paths.unweighted import all_pairs_shortest_path_length
 
 
 """
@@ -39,7 +40,7 @@ import matplotlib.animation as animation
 """
 35
 2000
-4000
+500
 1500
 ################################
 .#...#...#...#...#...#...#...#..
@@ -89,6 +90,9 @@ start_time = time()
 
 check = [[0, -1], [-1, 0], [0, 1], [1, 0]]
 
+DIST_REWARD = 0
+LAST_REWARD = 1
+
 def  num_of_drones(G):
     #print("Counting num drones")
     
@@ -114,41 +118,88 @@ def  num_of_drones(G):
 
 class Drone:
 
-    def __init__(self, pos=(0, 0), batt=1, num=0):
-        self.pos = pos
-        self.batt = batt
-        self.num = num
+    def __init__(self, graph: nx.Graph, all_paths: dict):
+        self.pos = (0, 0)
+        self.batt = BATTERY
+        self.G = graph
+        self.all_paths = all_paths
 
-    def search(self, G, node): # find destination
-        
-        #print(f"Num: {self.num}, Len: {len(nx.shortest_path(G, source=self.pos, target=(0,0))) - 1}, Batt: {self.batt}")
+    def search(self, num_drone: int): # find destination
 
-        if (self.batt < len(G.nodes[self.pos]["start_path"])):
-            path = G.nodes[self.pos]["start_path"]
+        def count_weight(node_1, node_2, edge_dict):
+            nodes = self.G.nodes
+            return 1 / (
+                LAST_REWARD * nodes[node_2]['last']
+                + DIST_REWARD * len(self.all_paths[node_1][node_2])
+                + 1
+            )
+
+        if (self.batt <= len(self.all_paths[self.pos][(0, 0)])):
+            #print(f"Battery is 0")
+            target_node = (0, 0)
+            paths = self.all_paths[self.pos]
         else:
-            path = nx.shortest_path(G, source=self.pos, target=node)
+            lengths, paths = nx.single_source_dijkstra(self.G, source=self.pos, weight=count_weight)
 
-        #print(f"Navigating dron {self.num} from {self.pos} to {node}")
-        
-        #print(path)
+            # print(f"Lengths: {lengths}\n Paths: {paths}")
+            lengths.pop(self.pos)
 
-        if (len(path) > 1):
-            next_node = path[1]
-        else:
-            #print(f"problem, source: {self.pos}, Target: {node}")
-            #next_node = path[0]
-            next_node = nx.neighbors(G, self.pos)[0]
+            need_batt = self.all_paths[self.pos]
+            #print(need_batt)
+
+            target_node = max(
+                lengths,
+                key=lambda node: len(need_batt[node]) / lengths[node]
+                - ( 
+                    math.inf 
+                    if len(need_batt[node]) + len(self.all_paths[node][(0, 0)]) >= self.batt
+                    else 0
+                )
+            )
+
+        next_node = paths[target_node][1]
+
+        #print(f"Num: {num}, pos: {self.pos}, target: {next_node}")
 
         res = self.command(self.pos, next_node)
 
         self.pos = next_node
 
+        self.G.nodes[self.pos]['last'] = 0
+
         self.batt -= 1
-
-        if (self.pos == (0,0)):
+        if self.pos == (0, 0):
             self.batt = BATTERY
-
         return res
+
+        # #print(f"Num: {self.num}, Len: {len(nx.shortest_path(G, source=self.pos, target=(0,0))) - 1}, Batt: {self.batt}")
+
+        # if (self.batt <= len(G.nodes[self.pos][(0, 0)])):
+        #     path = G.nodes[self.pos][(0, 0)]
+        # else:
+        #     path = G.nodes[self.pos][node]
+
+        # #print(f"Navigating dron {self.num} from {self.pos} to {node}")
+        
+        # #print(path)
+
+        # if (len(path) > 1):
+        #     next_node = path[1]
+        # else:
+        #     #print(f"problem, source: {self.pos}, Target: {node}")
+        #     #next_node = path[0]
+        #     next_node = nx.neighbors(G, self.pos)[0]
+
+        # res = self.command(self.pos, next_node)
+
+        # self.pos = next_node
+
+        # self.batt -= 1
+
+        # if (self.pos == (0,0)):
+        #     self.batt = BATTERY
+
+        # return res
 
     def command(self, pos, target): # return command for drone
         y0, x0 = pos
@@ -171,17 +222,34 @@ class Drone:
 
 class Fleet:
 
-    def __init__(self, G, num, pos, batt):
+    def __init__(self, G: nx.Graph, num_drones):
         self.G = G
-        self.num = num
+        self.num_drones = num_drones
 
-        self.drones = [Drone(batt=BATTERY, num = i) for i in range(self.num)]
 
+        # dists = nx.single_source_shortest_path_length(self.G, source=(0, 0))
+        # for node, dist in dists.items():
+        #     self.G.nodes[node]['start_path'] = dist
+
+        all_paths = dict(nx.all_pairs_shortest_path(self.G))
+
+        self.drones = [Drone(G, all_paths) for _ in range(self.num_drones)]
+
+        #print(f"Dists: {dists}")
+        #input()
+
+        # print("Making paths")
         
+        # for source_node in self.G.nodes:
+        #     for target_node in self.G.nodes:
+        #         path = nx.shortest_path(G, source=source_node, target=target_node)
+        #         #print(f"Source: {source_node}, Target: {target_node} Path: {path}")
+        #         self.G.nodes[source_node][target_node] = path
+        #         self.G.nodes[target_node][source_node] = path[::-1]
 
-        start_paths = nx.shortest_path(G, target=(0, 0))
-        for node, start_path in start_paths.items():
-            self.G.nodes[node]['start_path'] = start_path
+        # start_paths = nx.shortest_path(G, target=(0, 0))
+        # for node, start_path in start_paths.items():
+        #     self.G.nodes[node]['start_path'] = start_path
 
     def update(self):
         self.update_map()
@@ -190,27 +258,14 @@ class Fleet:
         return res
 
     def update_map(self):
-        for i in G.nodes:
-            G.nodes[i]['in'] = False
-            G.nodes[i]['num'] = -1
 
-        for i, drone in enumerate(self.drones):
-            self.G.nodes[drone.pos]['in'] = True
-            G.nodes[drone.pos]['num'] = i
-            self.G.nodes[drone.pos]['last'] = 0
+        for node in self.G.nodes:
+            self.G.nodes[node]['last'] += 1
 
-        #print("data:")
-        for i in self.G.nodes.data():
-            if (i[1]['in'] == False):
-                self.G.nodes[i[0]]['last'] += 1
-            #print(i)
+        # for i, drone in enumerate(self.drones):
+        #     self.G.nodes[drone.pos]['last'] = 0
     
-    def update_drones(self): # call search for each drone
-        #print("L:")
-        l = sorted(self.G.nodes.data(), key=lambda x: x[1]['last'], reverse=True)
-        #print(f"type: {type(l)} L: {l}")
-        #for i in l:
-        #    print(i)
+    def update_drones(self):
         
         res = ""
 
@@ -218,7 +273,8 @@ class Fleet:
             #print(f"Drone: {drone.num}, batt: {drone.batt}")
             
             #print(f"i: {i}, drone: {drone}, l: {l[i]}res: {res}")
-            res += drone.search(G, l[i][0])
+            #res += drone.search()
+            res += drone.search(i)
 
         return res
 
@@ -247,65 +303,70 @@ num_drones = num_of_drones(G)
 
 print(num_drones)
 
-fleet = Fleet(G, num_drones, (0, 0), BATTERY)
+fleet = Fleet(G, num_drones)
 
 res = ""
 
 for _ in range(STEPS):
     res += fleet.update()
     res += '\n'
-    #print(f"{fleet.update()}")
-
-fig, ax = plt.subplots()
-fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None, hspace=None)
-
-
-def animate(i):
-    """анимируем движение дронов"""
-
-    ax.clear()
-    options = {
-        "font_size": 24,
-        "node_size": 3000,
-        "node_color": "white",
-        "edgecolors": "black",
-        "linewidths": 5,
-        "width": 5,
-    }
-    # options = {
-    #     "font_size": 12,
-    #     "node_size": 1000,
-    #     "node_color": "white",
-    #     "edgecolors": "black",
-    #     "linewidths": 2,
-    #     "width": 2,
-    # }
-    # options = {
-    #     "font_size": 6,
-    #     "node_size": 100,
-    #     "node_color": "white",
-    #     "edgecolors": "black",
-    #     "linewidths": 1,
-    #     "width": 1,
-    # }
-    labels = {}
-    for inx, drone in enumerate(fleet.drones):
-        labels[drone.pos] = labels.get(drone.pos, []) + [inx]
-    nx.draw(
-        fleet.G,
-        ax=ax,
-        pos={node: (node[1], -node[0]) for node in fleet.G.nodes},
-        labels=labels,
-        **options
-    )
-    if i > 0:
-        fleet.update()
-
-# # создаем гифку с анимацией движения дронов
-drons_anima = animation.FuncAnimation(fig, func=animate, frames=range(STEPS + 1))
-drons_anima.save("drons_anima2.gif", writer="imagemagick", fps=3)
 
 print(res)
+
+# import matplotlib.pyplot as plt
+# import matplotlib.animation as animation
+
+# fig, ax = plt.subplots()
+# fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None, hspace=None)
+
+
+# def animate(i):
+#     """анимируем движение дронов"""
+
+#     ax.clear()
+#     # options = {
+#     #     "font_size": 24,
+#     #     "node_size": 3000,
+#     #     "node_color": "white",
+#     #     "edgecolors": "black",
+#     #     "linewidths": 5,
+#     #     "width": 5,
+#     # }
+#     options = {
+#         "font_size": 12,
+#         "node_size": 1000,
+#         "node_color": "white",
+#         "edgecolors": "black",
+#         "linewidths": 2,
+#         "width": 2,
+#     }
+#     # options = {
+#     #     "font_size": 6,
+#     #     "node_size": 100,
+#     #     "node_color": "white",
+#     #     "edgecolors": "black",
+#     #     "linewidths": 1,
+#     #     "width": 1,
+#     # }
+#     labels = {}
+#     for inx, drone in enumerate(fleet.drones):
+#         labels[drone.pos] = labels.get(drone.pos, []) + [inx]
+#     nx.draw(
+#         fleet.G,
+#         ax=ax,
+#         pos={node: (node[1], -node[0]) for node in fleet.G.nodes},
+#         labels=labels,
+#         **options
+#     )
+#     #plt.show()
+#     if i > 0:
+#         print(fleet.update())
+#         #input()
+
+# # # создаем гифку с анимацией движения дронов
+# drons_anima = animation.FuncAnimation(fig, func=animate, frames=range(STEPS + 1))
+# drons_anima.save("drons_anima2.gif", writer="imagemagick", fps=2)
+
 
 print(f"%s seconds", time() - start_time)
 print(f"Num: {num_drones}")
