@@ -4,10 +4,10 @@
 import networkx as nx
 from time import time
 import math
+import sys
 
-from networkx.algorithms.cycles import recursive_simple_cycles
-from networkx.algorithms.shortest_paths.unweighted import all_pairs_shortest_path_length
-
+#from networkx.algorithms.cycles import recursive_simple_cycles
+#from networkx.algorithms.shortest_paths.unweighted import all_pairs_shortest_path_length
 
 """
 7
@@ -109,6 +109,7 @@ def  num_of_drones(G):
     loss = loss_0
     for i in range(20):
         next_loss = loss - loss_1 / (2 ** i) + COST
+
         if (next_loss > loss):
             break
         loss = next_loss
@@ -118,11 +119,11 @@ def  num_of_drones(G):
 
 class Drone:
 
-    def __init__(self, graph: nx.Graph, all_paths: dict):
+    def __init__(self, graph: nx.Graph, all_paths_lengths: dict):
         self.pos = (0, 0)
         self.batt = BATTERY
         self.G = graph
-        self.all_paths = all_paths
+        self.all_paths_lengths = all_paths_lengths
 
     def search(self, num_drone: int): # find destination
 
@@ -130,29 +131,29 @@ class Drone:
             nodes = self.G.nodes
             return 1 / (
                 LAST_REWARD * nodes[node_2]['last']
-                + DIST_REWARD * len(self.all_paths[node_1][node_2])
+                #+ DIST_REWARD * len(self.all_paths[node_1][node_2])
                 + 1
             )
 
-        if (self.batt <= len(self.all_paths[self.pos][(0, 0)])):
-            #print(f"Battery is 0")
+        if (self.batt <= self.all_paths_lengths[self.pos][(0, 0)]):
+            #print(f"Num: {num_drone}, Pos: {self.pos}, Battery is 0")
             target_node = (0, 0)
-            paths = self.all_paths[self.pos]
+            paths = {(0, 0): self.G.nodes[self.pos]['start_path']}
         else:
             lengths, paths = nx.single_source_dijkstra(self.G, source=self.pos, weight=count_weight)
 
             # print(f"Lengths: {lengths}\n Paths: {paths}")
             lengths.pop(self.pos)
 
-            need_batt = self.all_paths[self.pos]
+            need_batt = self.all_paths_lengths[self.pos]
             #print(need_batt)
 
             target_node = max(
                 lengths,
-                key=lambda node: len(need_batt[node]) / lengths[node]
+                key=lambda node: need_batt[node] / lengths[node]
                 - ( 
                     math.inf 
-                    if len(need_batt[node]) + len(self.all_paths[node][(0, 0)]) >= self.batt
+                    if need_batt[node] + self.all_paths_lengths[node][(0, 0)] >= self.batt
                     else 0
                 )
             )
@@ -227,13 +228,15 @@ class Fleet:
         self.num_drones = num_drones
 
 
-        # dists = nx.single_source_shortest_path_length(self.G, source=(0, 0))
-        # for node, dist in dists.items():
-        #     self.G.nodes[node]['start_path'] = dist
+        start_paths = nx.single_source_shortest_path(self.G, source=(0, 0))
+        for node, path in start_paths.items():
+            self.G.nodes[node]['start_path'] = path[::-1]
 
-        all_paths = dict(nx.all_pairs_shortest_path(self.G))
+        # all_paths = dict(nx.all_pairs_shortest_path(self.G))
 
-        self.drones = [Drone(G, all_paths) for _ in range(self.num_drones)]
+        all_paths_lengths = dict(nx.all_pairs_shortest_path_length(self.G))
+
+        self.drones = [Drone(G, all_paths_lengths) for _ in range(self.num_drones)]
 
         #print(f"Dists: {dists}")
         #input()
@@ -308,6 +311,8 @@ fleet = Fleet(G, num_drones)
 res = ""
 
 for _ in range(STEPS):
+    if time() - start_time > 20:
+        sys.exit()
     res += fleet.update()
     res += '\n'
 
@@ -368,5 +373,5 @@ print(res)
 # drons_anima.save("drons_anima2.gif", writer="imagemagick", fps=2)
 
 
-print(f"%s seconds", time() - start_time)
-print(f"Num: {num_drones}")
+# print(f"%s seconds", time() - start_time)
+# print(f"Num: {num_drones}")
